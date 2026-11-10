@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Flag, House } from "lucide-react";
+import { Flag, House, Settings2 } from "lucide-react";
 import { gameActions } from "@/lib/store/game-store";
 import { totalQuickTurns } from "@/lib/game-engine/engine";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
@@ -43,6 +43,16 @@ export function GameTopBar({ session }) {
 
       {finished ? (
         <span className="size-11" aria-hidden />
+      ) : session.phase === "lobby" ? (
+        // Nothing to end yet; editing the setup is the useful action here.
+        <Link
+          href="/setup"
+          aria-label="Change setup"
+          title="Change setup"
+          className="inline-flex size-11 items-center justify-center rounded-full border-2 border-ink bg-paper transition hover:bg-cream-deep active:scale-95"
+        >
+          <Settings2 className="size-5" />
+        </Link>
       ) : (
         <IconButton label="End game" onClick={() => setConfirmEnd(true)}>
           <Flag className="size-5" />

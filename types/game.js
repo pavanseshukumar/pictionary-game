@@ -80,6 +80,7 @@
  * @property {number} round
  * @property {string} teamId
  * @property {string} drawerName
+ * @property {string | null} [challengeId]  Drawing challenge; null while the host is choosing. Absent on legacy saves (= normal).
  * @property {CategoryId} category
  * @property {boolean} isAllPlay
  * @property {Word} word
@@ -105,6 +106,8 @@
  * @property {boolean} difficultyBonus      Award extra points for medium/hard words.
  * @property {number} maxSkipsPerTurn
  * @property {boolean} includeCustomWords
+ * @property {'normal' | 'random' | 'host'} challengeMode  Drawing challenges (handicaps).
+ * @property {string[]} challengePool       Challenge ids enabled for Random mode.
  */
 
 /**

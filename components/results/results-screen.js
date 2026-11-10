@@ -35,16 +35,17 @@ export function ResultsScreen({ session }) {
         className="relative overflow-hidden rounded-[2rem] border-2 border-ink bg-[var(--team)] px-6 pt-10 pb-8 text-center text-[var(--team-fg)] shadow-[0_6px_0_0_var(--color-ink)] animate-pop-in"
         style={teamStyle(champ?.color ?? "sun")}
       >
+        <Sunburst />
         <span className="relative mx-auto inline-flex size-24 items-center justify-center rounded-full border-[3px] border-ink bg-sun text-ink shadow-[0_5px_0_0_var(--color-ink)] animate-wiggle">
           <Trophy className="size-12" strokeWidth={2.25} />
         </span>
-        <p className="mt-5 font-display text-sm font-bold tracking-[0.16em] uppercase opacity-85">
+        <p className="relative mt-5 font-display text-sm font-bold tracking-[0.16em] uppercase opacity-85">
           {session.endedEarly ? "Game called early" : "Game over"}
         </p>
-        <h1 className="mt-1 font-display text-[2.75rem] leading-none font-extrabold tracking-tight text-balance sm:text-6xl">
+        <h1 className="relative mt-1 font-display text-[2.75rem] leading-none font-extrabold tracking-tight text-balance sm:text-6xl">
           {tie ? "It’s a tie!" : `${champ?.name ?? "Nobody"} wins!`}
         </h1>
-        <p className="mt-3 text-lg font-semibold opacity-90">
+        <p className="relative mt-3 text-lg font-semibold opacity-90">
           {tie
             ? `${winners.map((w) => w.name).join(" & ")} share the crown`
             : classic
@@ -53,6 +54,11 @@ export function ResultsScreen({ session }) {
                 : "First across the finish line"
               : `${champ?.score} point${champ?.score === 1 ? "" : "s"} — top of the table`}
         </p>
+        {!tie && champ?.players.length > 0 && (
+          <p className="relative mx-auto mt-5 w-fit rounded-full bg-black/15 px-4 py-1.5 text-sm font-semibold">
+            Starring {champ.players.map((p) => p.name).join(", ")}
+          </p>
+        )}
       </section>
 
       <section>
@@ -90,6 +96,21 @@ export function ResultsScreen({ session }) {
         </ol>
       </section>
 
+      <div className="flex flex-col gap-3 sm:flex-row">
+        <Button size="lg" variant="sun" className="flex-1" onClick={() => gameActions.rematch()}>
+          <RotateCcw className="size-5" strokeWidth={2.75} />
+          Play again
+        </Button>
+        <ButtonLink href="/setup" size="lg" variant="paper" className="flex-1">
+          <Settings2 className="size-5" />
+          Change setup
+        </ButtonLink>
+        <ButtonLink href="/" size="lg" variant="paper" className="flex-1">
+          <House className="size-5" />
+          Home
+        </ButtonLink>
+      </div>
+
       <section>
         <h2 className="mb-3 font-display text-2xl font-extrabold tracking-tight">Game night in numbers</h2>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -116,20 +137,6 @@ export function ResultsScreen({ session }) {
         </div>
       </section>
 
-      <div className="mt-2 flex flex-col gap-3 sm:flex-row">
-        <Button size="lg" variant="sun" className="flex-1" onClick={() => gameActions.rematch()}>
-          <RotateCcw className="size-5" strokeWidth={2.75} />
-          Play again
-        </Button>
-        <ButtonLink href="/setup" size="lg" variant="paper" className="flex-1">
-          <Settings2 className="size-5" />
-          Change setup
-        </ButtonLink>
-        <ButtonLink href="/" size="lg" variant="paper" className="flex-1">
-          <House className="size-5" />
-          Home
-        </ButtonLink>
-      </div>
     </div>
   );
 }
@@ -141,5 +148,20 @@ function Stat({ label, value, detail, wide }) {
       <p className="mt-1 font-display text-3xl font-extrabold tracking-tight">{value}</p>
       {detail && <p className="mt-0.5 truncate text-sm text-ink-soft">{detail}</p>}
     </div>
+  );
+}
+
+/** Slow-turning rays behind the trophy. */
+function Sunburst() {
+  return (
+    <svg
+      aria-hidden
+      viewBox="-100 -100 200 200"
+      className="pointer-events-none absolute top-[-9rem] left-1/2 size-[30rem] -translate-x-1/2 animate-[spin_40s_linear_infinite] opacity-[0.16] motion-reduce:animate-none"
+    >
+      {Array.from({ length: 16 }, (_, i) => (
+        <path key={i} d="M0 0 L-7 -100 L7 -100 Z" fill="currentColor" transform={`rotate(${i * 22.5})`} />
+      ))}
+    </svg>
   );
 }

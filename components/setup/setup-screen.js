@@ -17,6 +17,9 @@ import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { Segmented, Stepper, Toggle } from "@/components/shared/controls";
 import { PageHeader, PageShell, SectionTitle } from "@/components/shared/page-shell";
 import { CategoryPicker } from "./category-picker";
+import { CHALLENGE_IDS, CHALLENGE_MODES } from "@/data/challenges";
+import { normalizeChallengeSettings } from "@/lib/game-engine/challenges";
+import { ChallengePicker } from "@/components/challenges/challenge-visuals";
 import { TeamEditor } from "./team-editor";
 
 function defaultTeam(i) {
@@ -27,7 +30,7 @@ function initialDraft() {
   const saved = loadSetup();
   if (saved) {
     return {
-      settings: { ...DEFAULT_SETTINGS, ...saved.settings },
+      settings: { ...DEFAULT_SETTINGS, ...saved.settings, ...normalizeChallengeSettings(saved.settings) },
       teams: saved.teams.slice(0, TEAM_LIMITS.max).map((t, i) => ({
         ...defaultTeam(i),
         name: typeof t.name === "string" ? t.name : DEFAULT_TEAM_NAMES[i],
@@ -219,6 +222,34 @@ function SetupForm() {
               <p className="mt-2 text-sm font-semibold text-coral-deep">
                 Classic needs at least one category besides All Play.
               </p>
+            )}
+          </Field>
+
+          <Field
+            label="Drawing style"
+            hint={
+              settings.challengeMode === "random"
+                ? "Each turn the drawer gets a surprise challenge from these, never the same one twice in a row."
+                : settings.challengeMode === "host"
+                  ? "Before every turn, the host chooses how the drawer must draw."
+                  : "Everyone draws normally. Turn on challenges for extra chaos."
+            }
+          >
+            <Segmented
+              label="Drawing style"
+              value={settings.challengeMode}
+              onChange={(v) => setSetting("challengeMode", v)}
+              options={CHALLENGE_MODES}
+            />
+            {settings.challengeMode === "random" && (
+              <div className="mt-3 animate-rise">
+                <ChallengePicker
+                  label="Challenges in the random draw"
+                  ids={CHALLENGE_IDS}
+                  value={settings.challengePool}
+                  onChange={(v) => setSetting("challengePool", v)}
+                />
+              </div>
             )}
           </Field>
 

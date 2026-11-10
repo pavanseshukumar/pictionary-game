@@ -253,6 +253,73 @@ body {
   animation: landing-glow 1.2s ease-in-out infinite;
 }
 
+@keyframes stamp {
+  0% {
+    opacity: 0;
+    transform: scale(1.8) rotate(-12deg);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(0.92) rotate(3deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0);
+  }
+}
+
+.animate-stamp {
+  animation: stamp 380ms cubic-bezier(0.3, 0.7, 0.4, 1) both;
+}
+
+@keyframes card-flip {
+  0% {
+    opacity: 0;
+    transform: perspective(900px) rotateY(-85deg) scale(0.92);
+  }
+  60% {
+    opacity: 1;
+    transform: perspective(900px) rotateY(8deg) scale(1.01);
+  }
+  100% {
+    opacity: 1;
+    transform: perspective(900px) rotateY(0) scale(1);
+  }
+}
+
+@keyframes challenge-bounce {
+  0%,
+  35% {
+    transform: scale(0.4) rotate(-20deg);
+  }
+  70% {
+    transform: scale(1.12) rotate(6deg);
+  }
+  100% {
+    transform: scale(1) rotate(0);
+  }
+}
+
+@keyframes line-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.animate-card-flip {
+  animation: card-flip 620ms cubic-bezier(0.25, 0.8, 0.3, 1) both;
+}
+.animate-challenge-bounce {
+  animation: challenge-bounce 760ms cubic-bezier(0.3, 0.7, 0.4, 1) both;
+}
+.challenge-line-draw {
+  stroke-dasharray: 1;
+  animation: line-draw 1.6s 300ms ease-in-out both;
+}
+
 .animate-die-tumble {
   animation: die-tumble 900ms cubic-bezier(0.3, 0.7, 0.4, 1) both;
 }

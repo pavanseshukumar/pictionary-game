@@ -14,6 +14,7 @@ import { Standings } from "@/components/game/team-bits";
 import { TurnResult } from "@/components/game/turn-result";
 import { BoardLegend, BoardView } from "./board-view";
 import { DiceRoller } from "./dice-roller";
+import { Die } from "./die";
 
 const STEP_MS = 260;
 
@@ -21,43 +22,51 @@ const STEP_MS = 260;
  * Shown positions trail the real ones one space at a time, so tokens visibly
  * hop along the track after a roll.
  */
-function useSteppedPositions(teams) {
+function useSteppedPositions(teams, hold) {
   const [shown, setShown] = useState(() => Object.fromEntries(teams.map((t) => [t.id, t.position])));
   const lagging = teams.find((t) => shown[t.id] !== t.position);
 
   useEffect(() => {
-    if (!lagging) return;
+    if (!lagging || hold) return;
     const id = setTimeout(() => {
       setShown((s) => ({ ...s, [lagging.id]: s[lagging.id] + Math.sign(lagging.position - s[lagging.id]) }));
       sfx.step();
     }, STEP_MS);
     return () => clearTimeout(id);
-  }, [lagging, shown]);
+  }, [lagging, shown, hold]);
 
   return { shown, moving: Boolean(lagging) };
 }
 
 export function BoardScreen({ session }) {
   const turn = session.currentTurn;
-  const { shown, moving } = useSteppedPositions(session.teams);
-  const rolling = session.phase === "roll";
+  // ready → rolling (result saved, die tumbling, tokens held) → done
+  const [dice, setDice] = useState(session.phase === "roll" ? "ready" : "done");
+  const holding = dice === "rolling";
+  const { shown, moving } = useSteppedPositions(session.teams, holding);
+  const rolling = dice !== "done";
+  const busy = holding || moving;
   const scorer = teamById(session, turn?.scoringTeamId);
   const winner = session.winnerTeamIds.length ? teamById(session, session.winnerTeamIds[0]) : null;
   const next = session.teams[nextTeamIndex(session)];
-  const landing = !moving && turn?.move ? turn.move.to : null;
+  const landing = !busy && turn?.move ? turn.move.to : null;
   const ranked = [...session.teams].sort((a, b) => b.position - a.position);
   const last = finishIndex(session.board);
   const boardRef = useRef(null);
 
-  const onRolled = (value) => {
+  const onRoll = (value) => {
+    setDice("rolling");
+    gameActions.roll(value);
+  };
+  const onSettled = () => {
+    setDice("done");
     // On phones the board sits below the dice; bring it into view to watch the move.
     boardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-    gameActions.roll(value);
   };
 
   useEffect(() => {
-    if (winner && !moving) sfx.fanfare();
-  }, [winner, moving]);
+    if (winner && !busy) sfx.fanfare();
+  }, [winner, busy]);
 
   return (
     <div className="grid flex-1 content-start gap-5 lg:grid-cols-[minmax(0,1fr)_22rem] lg:grid-rows-[auto_auto_1fr] lg:items-start">
@@ -65,15 +74,15 @@ export function BoardScreen({ session }) {
         <TurnResult session={session} />
         {rolling && scorer && (
           <section className="card-ink p-5" style={teamStyle(scorer.color)}>
-            <DiceRoller teamName={scorer.name} onRolled={onRolled} />
+            <DiceRoller teamName={scorer.name} onRoll={onRoll} onSettled={onSettled} />
           </section>
         )}
 
-        {!rolling && turn?.move && !moving && !winner && (
-          <MoveSummary session={session} move={turn.move} />
+        {!rolling && turn?.move && (!winner || busy) && (
+          <MoveSummary session={session} move={turn.move} arrived={!moving} />
         )}
 
-        {!rolling && winner && !moving && (
+        {!rolling && winner && !busy && (
           <section
             className="card-ink flex flex-col items-center gap-3 p-6 text-center animate-pop-in"
             style={teamStyle(winner.color)}
@@ -97,13 +106,15 @@ export function BoardScreen({ session }) {
               <p className="min-w-0 flex-1 leading-tight">
                 <span className="block text-xs font-bold tracking-wider text-ink-muted uppercase">Up next</span>
                 <span className="block truncate font-display text-xl font-extrabold">{next.name}</span>
-                <span className="block text-sm text-ink-soft">{drawerFor(next)} draws</span>
+                {next.players.length > 0 && (
+                  <span className="block text-sm text-ink-soft">{drawerFor(next)} draws</span>
+                )}
               </p>
               <NextCategory session={session} team={next} />
             </div>
-            <Button size="lg" variant="team" block disabled={moving} onClick={() => gameActions.nextTurn()}>
-              {moving ? "Moving…" : "Next turn"}
-              {!moving && <ArrowRight className="size-5" strokeWidth={3} />}
+            <Button size="lg" variant="team" block disabled={busy} onClick={() => gameActions.nextTurn()}>
+              {busy ? "Moving…" : "Next turn"}
+              {!busy && <ArrowRight className="size-5" strokeWidth={3} />}
             </Button>
           </section>
         )}
@@ -137,12 +148,16 @@ export function BoardScreen({ session }) {
   );
 }
 
-function MoveSummary({ move, session }) {
+function MoveSummary({ move, session, arrived }) {
   const space = session.board[move.to];
+  const steps = move.to - move.from;
   return (
-    <p className="rounded-2xl bg-cream-deep px-4 py-3 text-center font-semibold animate-pop-in">
-      Moved {move.to - move.from} space{move.to - move.from === 1 ? "" : "s"} → landed on{" "}
-      <strong>{space.category ? getCategory(space.category).label : "the finish"}</strong>
+    <p className="flex items-center justify-center gap-3 rounded-2xl bg-cream-deep px-4 py-3 font-semibold animate-pop-in">
+      <Die value={move.roll} size={32} className="drop-shadow-[0_2px_0_var(--color-ink)]" />
+      <span>
+        {arrived ? "Landed on" : `Moving ${steps} space${steps === 1 ? "" : "s"} to`}{" "}
+        <strong>{space.category ? getCategory(space.category).label : "the finish"}</strong>
+      </span>
     </p>
   );
 }

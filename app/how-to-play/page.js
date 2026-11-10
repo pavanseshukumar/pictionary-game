@@ -1,5 +1,6 @@
 import { Ban, Dices, Eye, Hourglass, Megaphone, Shuffle, Trophy, Users } from "lucide-react";
 import { CATEGORY_IDS, getCategory } from "@/data/categories";
+import { CHALLENGE_IDS, getChallenge } from "@/data/challenges";
 import { ButtonLink } from "@/components/shared/button";
 import { CategoryIcon } from "@/components/shared/category-badge";
 import { PageHeader, PageShell } from "@/components/shared/page-shell";
@@ -108,6 +109,30 @@ export default function Page() {
             On All Play, one team’s drawer draws but <strong>every team guesses at once</strong>. The host taps
             whichever team shouts the answer first. They score, and on the board they roll and move.
           </p>
+        </section>
+
+        <section>
+          <h2 className="font-display text-2xl font-extrabold tracking-tight">Drawing challenges</h2>
+          <p className="mt-1 mb-3 text-ink-soft">
+            Optional handicaps. Pick <strong>Random</strong> or <strong>Host picks</strong> in setup, and the drawer
+            sees their challenge right before the word. Scoring doesn’t change.
+          </p>
+          <ul className="grid gap-2 sm:grid-cols-2">
+            {CHALLENGE_IDS.map((id) => {
+              const c = getChallenge(id);
+              return (
+                <li key={id} className="flex items-start gap-3 rounded-2xl border-2 border-ink p-3" style={{ background: c.color, color: c.ink }}>
+                  <span className="text-3xl leading-none" aria-hidden>
+                    {c.emoji}
+                  </span>
+                  <span>
+                    <span className="block font-display font-extrabold">{c.name}</span>
+                    <span className="block text-sm opacity-85">{c.short}</span>
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
         </section>
 
         <section>

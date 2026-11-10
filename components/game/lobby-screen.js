@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, Ban, Clock, Gauge, Hash, Map, SkipForward } from "lucide-react";
+import { ArrowRight, Ban, Clock, Gauge, Hash, Map, SkipForward, Sparkles } from "lucide-react";
 import { teamStyle } from "@/data/team-colors";
 import { CATEGORIES } from "@/data/categories";
 import { gameActions } from "@/lib/store/game-store";
@@ -24,7 +24,12 @@ export function LobbyScreen({ session }) {
       icon: SkipForward,
       label: settings.maxSkipsPerTurn ? `${settings.maxSkipsPerTurn} word skip${settings.maxSkipsPerTurn > 1 ? "s" : ""} per turn` : "No word skips",
     },
-  ];
+    settings.challengeMode === "random" && {
+      icon: Sparkles,
+      label: `Surprise drawing challenges (${settings.challengePool.length} in the mix)`,
+    },
+    settings.challengeMode === "host" && { icon: Sparkles, label: "Host picks a drawing challenge each turn" },
+  ].filter(Boolean);
 
   return (
     <div className="flex flex-1 flex-col gap-8 animate-rise">
@@ -53,7 +58,7 @@ export function LobbyScreen({ session }) {
               )}
               {i === 0 && (
                 <p className="mt-2 inline-flex rounded-full bg-[var(--team-soft)] px-2.5 py-0.5 text-xs font-bold text-[var(--team-deep)]">
-                  First up · {drawerFor(team)} draws
+                  First up{team.players.length > 0 && ` · ${drawerFor(team)} draws`}
                 </p>
               )}
             </div>

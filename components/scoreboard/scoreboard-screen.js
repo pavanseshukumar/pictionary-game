@@ -7,7 +7,7 @@ import { rankTeams } from "@/lib/scoring";
 import { gameActions } from "@/lib/store/game-store";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/shared/button";
-import { Standings } from "@/components/game/team-bits";
+import { Standings, TeamToken } from "@/components/game/team-bits";
 import { TurnResult } from "@/components/game/turn-result";
 
 export function ScoreboardScreen({ session }) {
@@ -61,9 +61,21 @@ export function ScoreboardScreen({ session }) {
           </Button>
         ) : (
           <>
-            <p className="text-center text-ink-soft">
-              Up next: <strong className="text-ink">{next.name}</strong> · {drawerFor(next)} draws
-            </p>
+            <div className="flex items-center gap-3 rounded-2xl bg-[var(--team-soft)] px-4 py-3">
+              <TeamToken color={next.color} size={36} />
+              <p className="min-w-0 flex-1 leading-tight">
+                <span className="block text-xs font-bold tracking-wider text-[var(--team-deep)] uppercase">Up next</span>
+                <span className="block truncate font-display text-xl font-extrabold">
+                  {next.players.length ? (
+                    <>
+                      {drawerFor(next)} <span className="font-semibold text-ink-soft">for {next.name}</span>
+                    </>
+                  ) : (
+                    next.name
+                  )}
+                </span>
+              </p>
+            </div>
             <Button size="xl" variant="team" block onClick={() => gameActions.nextTurn()}>
               Next turn
               <ArrowRight className="size-6" strokeWidth={3} />
