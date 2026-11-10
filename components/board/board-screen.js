@@ -1,0 +1,154 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { ArrowRight, Trophy } from "lucide-react";
+import { getCategory } from "@/data/categories";
+import { teamStyle } from "@/data/team-colors";
+import { drawerFor, nextTeamIndex, teamById } from "@/lib/game-engine/engine";
+import { finishIndex } from "@/lib/game-engine/board";
+import { gameActions } from "@/lib/store/game-store";
+import { sfx } from "@/lib/utils/feedback";
+import { Button } from "@/components/shared/button";
+import { CategoryBadge } from "@/components/shared/category-badge";
+import { Standings } from "@/components/game/team-bits";
+import { TurnResult } from "@/components/game/turn-result";
+import { BoardLegend, BoardView } from "./board-view";
+import { DiceRoller } from "./dice-roller";
+
+const STEP_MS = 260;
+
+/**
+ * Shown positions trail the real ones one space at a time, so tokens visibly
+ * hop along the track after a roll.
+ */
+function useSteppedPositions(teams) {
+  const [shown, setShown] = useState(() => Object.fromEntries(teams.map((t) => [t.id, t.position])));
+  const lagging = teams.find((t) => shown[t.id] !== t.position);
+
+  useEffect(() => {
+    if (!lagging) return;
+    const id = setTimeout(() => {
+      setShown((s) => ({ ...s, [lagging.id]: s[lagging.id] + Math.sign(lagging.position - s[lagging.id]) }));
+      sfx.step();
+    }, STEP_MS);
+    return () => clearTimeout(id);
+  }, [lagging, shown]);
+
+  return { shown, moving: Boolean(lagging) };
+}
+
+export function BoardScreen({ session }) {
+  const turn = session.currentTurn;
+  const { shown, moving } = useSteppedPositions(session.teams);
+  const rolling = session.phase === "roll";
+  const scorer = teamById(session, turn?.scoringTeamId);
+  const winner = session.winnerTeamIds.length ? teamById(session, session.winnerTeamIds[0]) : null;
+  const next = session.teams[nextTeamIndex(session)];
+  const landing = !moving && turn?.move ? turn.move.to : null;
+  const ranked = [...session.teams].sort((a, b) => b.position - a.position);
+  const last = finishIndex(session.board);
+  const boardRef = useRef(null);
+
+  const onRolled = (value) => {
+    // On phones the board sits below the dice; bring it into view to watch the move.
+    boardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    gameActions.roll(value);
+  };
+
+  useEffect(() => {
+    if (winner && !moving) sfx.fanfare();
+  }, [winner, moving]);
+
+  return (
+    <div className="grid flex-1 content-start gap-5 lg:grid-cols-[minmax(0,1fr)_22rem] lg:grid-rows-[auto_auto_1fr] lg:items-start">
+      <div className="flex flex-col gap-4 lg:col-start-2">
+        <TurnResult session={session} />
+        {rolling && scorer && (
+          <section className="card-ink p-5" style={teamStyle(scorer.color)}>
+            <DiceRoller teamName={scorer.name} onRolled={onRolled} />
+          </section>
+        )}
+
+        {!rolling && turn?.move && !moving && !winner && (
+          <MoveSummary session={session} move={turn.move} />
+        )}
+
+        {!rolling && winner && !moving && (
+          <section
+            className="card-ink flex flex-col items-center gap-3 p-6 text-center animate-pop-in"
+            style={teamStyle(winner.color)}
+          >
+            <span className="inline-flex size-16 items-center justify-center rounded-full border-2 border-ink bg-sun">
+              <Trophy className="size-8" />
+            </span>
+            <p className="font-display text-3xl font-extrabold tracking-tight">{winner.name} made it!</p>
+            <p className="text-ink-soft">First to the finish line. Let’s see the final standings.</p>
+            <Button size="lg" variant="sun" block onClick={() => gameActions.nextTurn()}>
+              See results
+              <ArrowRight className="size-5" strokeWidth={3} />
+            </Button>
+          </section>
+        )}
+
+        {!rolling && !winner && (
+          <section className="card-ink flex flex-col gap-4 p-5" style={teamStyle(next.color)}>
+            <div className="flex items-center gap-3">
+              <span className="size-4 rounded-full border-2 border-ink bg-[var(--team)]" />
+              <p className="min-w-0 flex-1 leading-tight">
+                <span className="block text-xs font-bold tracking-wider text-ink-muted uppercase">Up next</span>
+                <span className="block truncate font-display text-xl font-extrabold">{next.name}</span>
+                <span className="block text-sm text-ink-soft">{drawerFor(next)} draws</span>
+              </p>
+              <NextCategory session={session} team={next} />
+            </div>
+            <Button size="lg" variant="team" block disabled={moving} onClick={() => gameActions.nextTurn()}>
+              {moving ? "Moving…" : "Next turn"}
+              {!moving && <ArrowRight className="size-5" strokeWidth={3} />}
+            </Button>
+          </section>
+        )}
+      </div>
+
+      <div className="flex flex-col gap-3 lg:col-start-1 lg:row-span-3 lg:row-start-1">
+        <div ref={boardRef} className="card-ink scroll-mt-4 p-2 sm:p-4">
+          <BoardView
+            board={session.board}
+            teams={session.teams}
+            positions={shown}
+            activeTeamId={rolling ? scorer?.id : next?.id}
+            landingIndex={landing}
+          />
+        </div>
+        <BoardLegend board={session.board} />
+      </div>
+
+      <aside className="lg:col-start-2">
+        <section>
+          <h2 className="mb-2 font-display text-lg font-extrabold">Race to the finish</h2>
+          <Standings
+            teams={ranked}
+            activeId={rolling ? scorer?.id : next?.id}
+            metric={(t) => (shown[t.id] === last ? "🏁" : `${shown[t.id]}`)}
+            metricLabel="space"
+          />
+        </section>
+      </aside>
+    </div>
+  );
+}
+
+function MoveSummary({ move, session }) {
+  const space = session.board[move.to];
+  return (
+    <p className="rounded-2xl bg-cream-deep px-4 py-3 text-center font-semibold animate-pop-in">
+      Moved {move.to - move.from} space{move.to - move.from === 1 ? "" : "s"} → landed on{" "}
+      <strong>{space.category ? getCategory(space.category).label : "the finish"}</strong>
+    </p>
+  );
+}
+
+function NextCategory({ session, team }) {
+  const space = session.board[team.position];
+  if (!space?.category) return <span className="text-sm font-semibold text-ink-muted">Surprise category</span>;
+  return <CategoryBadge category={space.category} size="sm" />;
+}
